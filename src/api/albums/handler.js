@@ -1,7 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-underscore-dangle */
 const autoBind = require('auto-bind');
-const ClientError = require('../../exceptions/ClientError');
 
 class AlbumsHandler {
   constructor(service, validator) {
@@ -64,31 +63,6 @@ class AlbumsHandler {
       status: 'success',
       message: 'Album berhasil dihapus',
     };
-  }
-
-  // Error handler menggunakan onPreResponse event ext
-  static errorHandler(request, h) {
-    const { response } = request;
-    if (response instanceof Error) {
-      if (response instanceof ClientError) {
-        const newResponse = h.response({
-          status: 'fail',
-          message: response.message,
-        });
-        newResponse.code(response.statusCode);
-        return newResponse;
-      }
-      if (!response.isServer) {
-        return h.continue;
-      }
-      const newResponse = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
-      });
-      newResponse.code(500);
-      return newResponse;
-    }
-    return h.continue;
   }
 }
 

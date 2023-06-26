@@ -2,30 +2,25 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-underscore-dangle */
 const autoBind = require('auto-bind');
-const ClientError = require('../../exceptions/ClientError');
 
 class SongsHandler {
   constructor(service, validator) {
     this._service = service;
     this._validator = validator;
-
     autoBind(this);
   }
 
   // Method adding song
   async postSongHandler(request, h) {
     this._validator.validateSongPayload(request.payload);
-    const { title, year, performer, genre, duration, albumId } = request.payload;
-
+    const { title, year, performer, genre, duration } = request.payload;
     const songId = await this._service.addSong({
       title,
       year,
       performer,
       genre,
       duration,
-      albumId,
     });
-
     const response = h.response({
       status: 'success',
       message: 'Lagu berhasil ditambahkan',
@@ -62,16 +57,17 @@ class SongsHandler {
 
   async putSongByIdHandler(request) {
     this._validator.validateSongPayload(request.payload);
-    const { id } = request.params;
-    const { title, year, performer, genre, duration, albumId } = request.payload;
 
-    await this._service.updateSongById(id, {
+    const { title, year, performer, genre, duration } = request.payload;
+
+    const { id } = request.params;
+
+    await this._service.editSongById(id, {
       title,
       year,
       performer,
       genre,
       duration,
-      albumId,
     });
 
     return {
@@ -88,31 +84,6 @@ class SongsHandler {
       status: 'success',
       message: 'Lagu berhasil dihapus',
     };
-  }
-
-  // Error handler menggunakan onPreResponse event ext
-  static errorHandler(request, h) {
-    const { response } = request;
-    if (response instanceof Error) {
-      if (response instanceof ClientError) {
-        const newResponse = h.response({
-          status: 'fail',
-          message: response.message,
-        });
-        newResponse.code(response.statusCode);
-        return newResponse;
-      }
-      if (!response.isServer) {
-        return h.continue;
-      }
-      const newResponse = h.response({
-        status: 'error',
-        message: 'Maaf, terjadi kegagalan pada server kami.',
-      });
-      newResponse.code(500);
-      return newResponse;
-    }
-    return h.continue;
   }
 }
 
