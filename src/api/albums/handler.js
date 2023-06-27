@@ -31,11 +31,16 @@ class AlbumsHandler {
   // Method get spesific album by id
   async getAlbumByIdHandler(request) {
     const { id } = request.params;
-    const album = await this._service.getAlbumById(id);
+    const [album, songs] = await Promise.all([
+      this._service.getAlbumById(id),
+      this._service.getSongsInAlbum(id),
+    ]);
+    const albumWithSongs = { ...album, songs };
+
     return {
       status: 'success',
       data: {
-        album,
+        album: albumWithSongs,
       },
     };
   }

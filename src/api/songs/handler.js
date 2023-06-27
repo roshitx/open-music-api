@@ -10,16 +10,16 @@ class SongsHandler {
     autoBind(this);
   }
 
-  // Method adding song
   async postSongHandler(request, h) {
     this._validator.validateSongPayload(request.payload);
-    const { title, year, performer, genre, duration } = request.payload;
+    const { title, year, performer, genre, duration, albumId } = request.payload;
     const songId = await this._service.addSong({
       title,
       year,
       performer,
       genre,
       duration,
+      albumId,
     });
     const response = h.response({
       status: 'success',
@@ -32,8 +32,9 @@ class SongsHandler {
     return response;
   }
 
-  async getSongsHandler() {
-    const songs = await this._service.getSongs();
+  async getSongsHandler(request) {
+    const { title, performer } = request.query;
+    const songs = await this._service.getSongs(title, performer);
 
     return {
       status: 'success',
