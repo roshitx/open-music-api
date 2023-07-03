@@ -1,5 +1,4 @@
 /* eslint-disable import/no-extraneous-dependencies */
-/* eslint-disable no-underscore-dangle */
 const autoBind = require('auto-bind');
 
 class AlbumsHandler {
@@ -10,7 +9,6 @@ class AlbumsHandler {
     autoBind(this);
   }
 
-  // Method adding album
   async postAlbumHandler(request, h) {
     this._validator.validateAlbumPayload(request.payload);
     const { name, year } = request.payload;
@@ -28,7 +26,6 @@ class AlbumsHandler {
     return response;
   }
 
-  // Method get spesific album by id
   async getAlbumByIdHandler(request) {
     const { id } = request.params;
     const [album, songs] = await Promise.all([
@@ -45,7 +42,6 @@ class AlbumsHandler {
     };
   }
 
-  // Method edit album by id
   async putAlbumByIdHandler(request) {
     this._validator.validateAlbumPayload(request.payload);
     const { name, year } = request.payload;
@@ -59,7 +55,6 @@ class AlbumsHandler {
     };
   }
 
-  // Method delete album by id
   async deleteAlbumByIdHandler(request) {
     const { id } = request.params;
     await this._service.deleteAlbumById(id);

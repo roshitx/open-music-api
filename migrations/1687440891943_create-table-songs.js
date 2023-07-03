@@ -24,8 +24,11 @@ exports.up = (pgm) => {
     duration: {
       type: 'INTEGER',
     },
-    albumId: {
+    album_id: {
       type: 'VARCHAR(50)',
+      notNull: false,
+      references: 'albums',
+      onDelete: 'cascade',
     },
     created_at: {
       type: 'TEXT',
@@ -36,6 +39,7 @@ exports.up = (pgm) => {
       notNull: true,
     },
   });
+  pgm.createIndex('songs', 'album_id');
 };
 
 exports.down = (pgm) => {

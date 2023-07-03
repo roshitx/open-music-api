@@ -1,19 +1,36 @@
-/* eslint-disable import/no-extraneous-dependencies */
 require('dotenv').config();
-
+const Jwt = require('@hapi/jwt');
 const Hapi = require('@hapi/hapi');
-const albums = require('./api/albums');
-const songs = require('./api/songs');
 const ErrorsHandler = require('./exceptions/ErrorHandler');
+
+// albums
+const albums = require('./api/albums');
 const AlbumsService = require('./services/postgres/albumsService');
-const SongsService = require('./services/postgres/songsService');
 const AlbumsValidator = require('./validator/albums');
+
+// songs
+const songs = require('./api/songs');
+const SongsService = require('./services/postgres/songsService');
 const SongsValidator = require('./validator/songs');
+
+// users
+const users = require('./api/users');
+const UsersService = require('./services/postgres/UsersService');
+const UsersValidator = require('./validator/users');
+
+// authentications
+const authentications = require('./api/authentications');
+const AuthenticationsService = require('./services/postgres/AuthenticationsService');
+const TokenManager = require('./tokenize/TokenManager');
+const AuthenticationsValidator = require('./validator/authentications');
 
 // Server configuration
 const init = async () => {
   const albumsService = new AlbumsService();
   const songsService = new SongsService();
+  const usersService = new UsersService();
+  const authenticationsService = new AuthenticationsService();
+
   const server = Hapi.server({
     port: process.env.PORT,
     host: process.env.HOST,
@@ -24,23 +41,60 @@ const init = async () => {
     },
   });
 
-  //   Register albums
-  await server.register({
-    plugin: albums,
-    options: {
-      service: albumsService,
-      validator: AlbumsValidator,
+  await server.register([
+    {
+      plugin: Jwt,
     },
+  ]);
+
+  server.auth.strategy('openmusic_jwt', 'jwt', {
+    keys: process.env.ACCESS_TOKEN_KEY,
+    verify: {
+      aud: false,
+      iss: false,
+      sub: false,
+      maxAgeSec: process.env.ACCESS_TOKEN_AGE,
+    },
+    validate: (artifacts) => ({
+      isValid: true,
+      credentials: {
+        id: artifacts.decoded.payload.id,
+      },
+    }),
   });
 
-  //   Register songs
-  await server.register({
-    plugin: songs,
-    options: {
-      service: songsService,
-      validator: SongsValidator,
+  await server.register([
+    {
+      plugin: albums,
+      options: {
+        service: albumsService,
+        validator: AlbumsValidator,
+      },
     },
-  });
+    {
+      plugin: songs,
+      options: {
+        service: songsService,
+        validator: SongsValidator,
+      },
+    },
+    {
+      plugin: users,
+      options: {
+        service: usersService,
+        validator: UsersValidator,
+      },
+    },
+    {
+      plugin: authentications,
+      options: {
+        authenticationsService,
+        usersService,
+        tokenManager: TokenManager,
+        validator: AuthenticationsValidator,
+      },
+    },
+  ]);
 
   //   onPreResponse event extensions for error handler (500)
   server.ext('onPreResponse', ErrorsHandler.errorHandler);

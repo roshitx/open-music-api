@@ -1,4 +1,3 @@
-/* eslint-disable no-underscore-dangle */
 const { Pool } = require('pg');
 const { nanoid } = require('nanoid');
 const InvariantError = require('../../exceptions/InvariantError');
@@ -11,15 +10,13 @@ class AlbumsService {
     this._pool = new Pool();
   }
 
-  // Create new album
   async addAlbum({ name, year }) {
     const id = `album-${nanoid(16)}`;
     const createdAt = new Date().toISOString();
-    const updatedAt = createdAt;
 
     const query = {
-      text: 'INSERT INTO albums VALUES($1, $2, $3, $4, $5) RETURNING id',
-      values: [id, name, year, createdAt, updatedAt],
+      text: 'INSERT INTO albums VALUES($1, $2, $3, $4, 4) RETURNING id',
+      values: [id, name, year, createdAt],
     };
 
     const result = await this._pool.query(query);
@@ -31,7 +28,6 @@ class AlbumsService {
     return result.rows[0].id;
   }
 
-  // Get spesific album
   async getAlbumById(id) {
     const query = {
       text: 'SELECT * FROM albums WHERE id = $1',
@@ -39,14 +35,13 @@ class AlbumsService {
     };
     const result = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!result.rowCount) {
       throw new NotFoundError('Album tidak ditemukan');
     }
 
     return result.rows.map(mapDBToModel)[0];
   }
 
-  // Update spesific album
   async editAlbumById(id, { name, year }) {
     const updatedAt = new Date().toISOString();
     const query = {
@@ -56,12 +51,11 @@ class AlbumsService {
 
     const result = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!result.rowCount) {
       throw new NotFoundError('Gagal memperbarui album. Id tidak ditemukan');
     }
   }
 
-  // Delete spesific album
   async deleteAlbumById(id) {
     const query = {
       text: 'DELETE FROM albums WHERE id = $1 RETURNING id',
@@ -70,15 +64,14 @@ class AlbumsService {
 
     const result = await this._pool.query(query);
 
-    if (!result.rows.length) {
+    if (!result.rowCount) {
       throw new NotFoundError('Album gagal dihapus. Id tidak ditemukan');
     }
   }
 
-  // Get album with songs function
   async getSongsInAlbum(id) {
     const query = {
-      text: 'SELECT id, title, performer FROM songs WHERE "albumId" = $1',
+      text: 'SELECT id, title, performer FROM songs WHERE album_id = $1',
       values: [id],
     };
     const result = await this._pool.query(query);
