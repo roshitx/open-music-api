@@ -1,7 +1,7 @@
 const { nanoid } = require('nanoid');
 const { Pool } = require('pg');
 const { mapDBToModelPlaylist } = require('../../utils/playlists');
-const { mapDBToModelSong } = require('../../utils/songs');
+const { mapDBToModelSong, mapSong } = require('../../utils/songs');
 const { mapActivity } = require('../../utils/activities');
 const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
@@ -32,9 +32,9 @@ class PlaylistsService {
 
   async getPlaylists(owner) {
     const query = {
-      text: `SELECT playlists.id, playlists.name, users.username  FROM playlists
-      LEFT JOIN users ON users.id = playlists.owner
-      WHERE owner = $1`,
+      text: `SELECT playlists.id, playlists.name, users.username FROM playlists
+      INNER JOIN users ON playlists.owner = users.id
+      WHERE playlists.owner = $1`,
       values: [owner],
     };
     const result = await this._pool.query(query);
@@ -55,6 +55,33 @@ class PlaylistsService {
     }
   }
 
+  async checkPlaylists(id) {
+    const query = {
+      text: 'SELECT * FROM playlists WHERE id = $1',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+
+    if (!result.rowCount) {
+      throw new NotFoundError('Playlist tidak ditemukan');
+    }
+  }
+
+  async checkSongsExist(id) {
+    const query = {
+      text: 'SELECT * FROM songs WHERE id = $1',
+      values: [id],
+    };
+
+    const result = await this._pool.query(query);
+    if (!result.rowCount) {
+      throw new NotFoundError('Lagu tidak ditemukan');
+    }
+
+    return result.rows.map(mapDBToModelSong)[0];
+  }
+
   async addSongToPlaylist(playlistId, songId) {
     const id = `playlist-${nanoid(16)}`;
 
@@ -68,21 +95,8 @@ class PlaylistsService {
     if (!result.rowCount) {
       throw new InvariantError('Lagu gagal ditambahkan ke playlist');
     }
-
+    console.log(result);
     return result.rows[0].id;
-  }
-
-  async checkPlaylists(id) {
-    const query = {
-      text: 'SELECT * FROM playlists WHERE id = $1',
-      values: [id],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rowCount) {
-      throw new NotFoundError('Playlist tidak ditemukan');
-    }
   }
 
   async getPlaylistById(playlistId, credentialId) {
@@ -99,7 +113,7 @@ class PlaylistsService {
 
   async getSongsFromPlaylist(playlistId) {
     const query = {
-      text: `SELECT playlists.*, users.username, songs.id as song_id, songs.title as song_title, songs.performer FROM playlists
+      text: `SELECT playlists.*, users.username, songs.id as song_id, songs.title, songs.performer FROM playlists
       LEFT JOIN playlist_songs ON playlist_songs.playlist_id = playlists.id
       LEFT JOIN songs ON songs.id = playlist_songs.song_id
       LEFT JOIN users ON users.id = playlists.owner
@@ -113,8 +127,8 @@ class PlaylistsService {
       throw new NotFoundError('Playlist anda tidak ditemukan');
     }
 
-    const playlist = result.rows.map(mapDBToModelPlaylist)[0];
-    const songs = result.rows.map(mapDBToModelSong);
+    const playlist = mapDBToModelPlaylist(result.rows[0]);
+    const songs = result.rows.map(mapSong);
 
     return { ...playlist, songs };
   }
@@ -134,7 +148,7 @@ class PlaylistsService {
 
   async verifyPlaylistOwner(id, owner) {
     const query = {
-      text: 'SELECT * FROM playlists WHERE id = $1',
+      text: 'SELECT owner FROM playlists WHERE id = $1',
       values: [id],
     };
 
@@ -164,6 +178,7 @@ class PlaylistsService {
           userId,
         );
       } catch {
+        console.error(error);
         throw error;
       }
     }

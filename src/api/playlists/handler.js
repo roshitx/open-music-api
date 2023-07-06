@@ -62,15 +62,18 @@ class PlaylistsHandler {
     const action = 'add';
 
     await this._service.verifyPlaylistAccess(playlistId, credentialId);
-    await this._songsService.getSongById(songId);
+    await this._service.checkSongsExist(songId);
     await this._service.addSongActivities({
       playlistId,
       songId,
       userId: credentialId,
       action,
     });
-
-    await this._service.addSongToPlaylist(playlistId, songId);
+    try {
+      await this._service.addSongToPlaylist(playlistId, songId);
+    } catch (error) {
+      console.error(error);
+    }
 
     const response = h.response({
       status: 'success',
@@ -83,7 +86,7 @@ class PlaylistsHandler {
   async getSongFromPlaylistHandler(request) {
     const { id: credentialId } = request.auth.credentials;
     const { id: playlistId } = request.params;
-    console.log(`error get ${credentialId} ${playlistId}`);
+    // console.log(`error get ${credentialId} ${playlistId}`);
 
     await this._service.verifyPlaylistAccess(playlistId, credentialId);
 

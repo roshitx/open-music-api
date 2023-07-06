@@ -22,4 +22,14 @@ const mapDBToModelSong = ({
   updatedAt: updated_at,
 });
 
-module.exports = { mapDBToModelSong };
+const mapSong = ({
+  song_id,
+  title,
+  performer,
+}) => ({
+  id: song_id,
+  title,
+  performer,
+});
+
+module.exports = { mapDBToModelSong, mapSong };
