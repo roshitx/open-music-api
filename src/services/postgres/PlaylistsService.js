@@ -3,8 +3,8 @@ const { Pool } = require('pg');
 const { mapDBToModelPlaylist } = require('../../utils/playlists');
 const { mapDBToModelSong, mapSong } = require('../../utils/songs');
 const { mapActivity } = require('../../utils/activities');
-const InvariantError = require('../../exceptions/InvariantError');
 const NotFoundError = require('../../exceptions/NotFoundError');
+const InvariantError = require('../../exceptions/InvariantError');
 const AuthorizationError = require('../../exceptions/AuthorizationError');
 
 class PlaylistsService {
@@ -24,17 +24,17 @@ class PlaylistsService {
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new InvariantError('Playlist gagal ditambahkan');
+      throw new InvariantError('Gagal menambahkan playlist');
     }
 
     return result.rows[0].id;
   }
 
-  async getPlaylists(owner) {
+  async getAllPlaylists(owner) {
     const query = {
       text: `SELECT playlists.id, playlists.name, users.username FROM playlists
-      INNER JOIN users ON playlists.owner = users.id
-      WHERE playlists.owner = $1`,
+      LEFT JOIN users ON playlists.owner = users.id LEFT JOIN collaborations ON collaborations.playlist_id = playlists.id
+      WHERE playlists.owner = $1 OR collaborations.user_id = $1`,
       values: [owner],
     };
     const result = await this._pool.query(query);
@@ -51,20 +51,44 @@ class PlaylistsService {
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new InvariantError('Playlist gagal dihapus. Id tidak ditemukan');
+      throw new InvariantError('Gagal menghapus playlist. Id tidak ditemukan');
     }
   }
 
-  async checkPlaylists(id) {
+  async verifyPlaylistAccess(playlistId, userId) {
+    try {
+      await this.verifyPlaylistOwner(playlistId, userId);
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      try {
+        await this._collaborationsService.verifyCollaborator(
+          playlistId,
+          userId,
+        );
+      } catch {
+        throw error;
+      }
+    }
+  }
+
+  async verifyPlaylistOwner(id, owner) {
     const query = {
-      text: 'SELECT * FROM playlists WHERE id = $1',
+      text: 'SELECT owner FROM playlists WHERE id = $1',
       values: [id],
     };
 
     const result = await this._pool.query(query);
 
-    if (!result.rowCount) {
+    if (!result.rows.length) {
       throw new NotFoundError('Playlist tidak ditemukan');
+    }
+
+    const playlist = result.rows[0];
+
+    if (playlist.owner !== owner) {
+      throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
     }
   }
 
@@ -93,9 +117,8 @@ class PlaylistsService {
     const result = await this._pool.query(query);
 
     if (!result.rowCount) {
-      throw new InvariantError('Lagu gagal ditambahkan ke playlist');
+      throw new InvariantError('Gagal menambahkan lagu ke playlist');
     }
-    console.log(result);
     return result.rows[0].id;
   }
 
@@ -124,7 +147,7 @@ class PlaylistsService {
     const result = await this._pool.query(query);
 
     if (!result.rows.length) {
-      throw new NotFoundError('Playlist anda tidak ditemukan');
+      throw new NotFoundError('Playlist tidak ditemukan');
     }
 
     const playlist = mapDBToModelPlaylist(result.rows[0]);
@@ -146,44 +169,6 @@ class PlaylistsService {
     }
   }
 
-  async verifyPlaylistOwner(id, owner) {
-    const query = {
-      text: 'SELECT owner FROM playlists WHERE id = $1',
-      values: [id],
-    };
-
-    const result = await this._pool.query(query);
-
-    if (!result.rows.length) {
-      throw new NotFoundError('Playlist tidak ditemukan');
-    }
-
-    const playlist = result.rows[0];
-
-    if (playlist.owner !== owner) {
-      throw new AuthorizationError('Anda tidak berhak mengakses resource ini');
-    }
-  }
-
-  async verifyPlaylistAccess(playlistId, userId) {
-    try {
-      await this.verifyPlaylistOwner(playlistId, userId);
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw error;
-      }
-      try {
-        await this._collaborationsService.verifyCollaborator(
-          playlistId,
-          userId,
-        );
-      } catch {
-        console.error(error);
-        throw error;
-      }
-    }
-  }
-
   async addSongActivities({
     playlistId, songId, userId, action,
   }) {
@@ -198,7 +183,7 @@ class PlaylistsService {
     const result = await this._pool.query(query);
 
     if (!result.rows[0].id) {
-      throw new InvariantError('Aktifitas lagu gagal dibuat');
+      throw new InvariantError('Gagal membuat aktivitas lagu');
     }
   }
 

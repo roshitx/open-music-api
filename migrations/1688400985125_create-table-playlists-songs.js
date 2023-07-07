@@ -11,14 +11,14 @@ exports.up = (pgm) => {
     playlist_id: {
       type: 'VARCHAR(50)',
       notNull: true,
-      unique: true,
+      // unique: true,
       references: 'playlists',
       onDelete: 'cascade',
     },
     song_id: {
       type: 'VARCHAR(50)',
       notNull: true,
-      unique: true,
+      // unique: true,
       references: 'songs',
       onDelete: 'cascade',
     },

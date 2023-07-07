@@ -53,6 +53,7 @@ const init = async () => {
     },
   });
 
+  // Register JWT plugin and strategy
   await server.register([
     {
       plugin: Jwt,
@@ -75,6 +76,7 @@ const init = async () => {
     }),
   });
 
+  // Register all plugins
   await server.register([
     {
       plugin: albums,
