@@ -1,9 +1,11 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const autoBind = require('auto-bind');
+const config = require('../../utils/config');
 
 class AlbumsHandler {
-  constructor(service, validator) {
+  constructor(service, storageService, validator) {
     this._service = service;
+    this._storageService = storageService;
     this._validator = validator;
 
     autoBind(this);
@@ -63,6 +65,25 @@ class AlbumsHandler {
       status: 'success',
       message: 'Album berhasil dihapus',
     };
+  }
+
+  async postUploadAlbumCoverHandler(request, h) {
+    const { cover } = request.payload;
+    const { id } = request.params;
+    this._validator.validateImageHeaders(cover.hapi.headers);
+
+    const filename = await this._storageService.writeFile(cover, cover.hapi);
+
+    const coverUrl = `http://${config.app.host}:${config.app.port}/uploads/images/${filename}`;
+    console.log(coverUrl);
+    await this._service.addAlbumCover(coverUrl, id);
+
+    const response = h.response({
+      status: 'success',
+      message: 'Sampul berhasil diunggah',
+    });
+    response.code(201);
+    return response;
   }
 }
 

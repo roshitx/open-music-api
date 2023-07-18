@@ -77,6 +77,14 @@ class AlbumsService {
     const result = await this._pool.query(query);
     return result.rows.map(mapDBToModelSong);
   }
+
+  async addAlbumCover(cover, id) {
+    const query = {
+      text: 'UPDATE albums SET cover = $1 WHERE id = $2 RETURNING id',
+      values: [cover, id],
+    };
+    await this._pool.query(query);
+  }
 }
 
 module.exports = AlbumsService;
