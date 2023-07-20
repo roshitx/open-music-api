@@ -1,24 +1,24 @@
 exports.up = (pgm) => {
-  pgm.createTable('playlists', {
+  pgm.createTable('user_album_likes', {
     id: {
       type: 'VARCHAR(50)',
       primaryKey: true,
     },
-    name: {
+    user_id: {
       type: 'VARCHAR(50)',
       notNull: true,
+      references: 'users(id)',
+      onDelete: 'CASCADE',
     },
-    owner: {
+    album_id: {
       type: 'VARCHAR(50)',
       notNull: true,
-      references: 'users',
-      onDelete: 'cascade',
+      references: 'albums(id)',
+      onDelete: 'CASCADE',
     },
   });
-
-  pgm.createIndex('playlists', 'owner');
 };
 
 exports.down = (pgm) => {
-  pgm.dropTable('playlists');
+  pgm.dropTable('user_album_likes');
 };

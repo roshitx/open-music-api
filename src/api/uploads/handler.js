@@ -16,7 +16,7 @@ class UploadsHandler {
     const filename = await this._service.writeFile(cover, cover.hapi);
 
     const coverUrl = `http://${config.app.host}:${config.app.port}/uploads/images/${filename}`;
-    console.log(coverUrl);
+
     await this._service.addAlbumCover(coverUrl, id);
 
     const response = h.response({

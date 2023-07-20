@@ -47,15 +47,21 @@ const ExportsValidator = require('./validator/exports');
 const StorageService = require('./services/storage/StorageService');
 // const UploadsValidator = require('./validator/uploads');
 
+// redis
+const CacheService = require('./services/redis/CacheService');
+
 // Server configuration
 const init = async () => {
-  const albumsService = new AlbumsService();
+  const cacheService = new CacheService();
+  const albumsService = new AlbumsService(cacheService);
   const songsService = new SongsService();
   const usersService = new UsersService();
   const authenticationsService = new AuthenticationsService();
   const collaborationsService = new CollaborationsService();
-  const playlistsService = new PlaylistsService(collaborationsService);
-  const storageService = new StorageService(path.resolve(__dirname, 'api/albums/file/images'));
+  const playlistsService = new PlaylistsService(collaborationsService, cacheService);
+  const storageService = new StorageService(
+    path.resolve(__dirname, 'api/albums/file/images'),
+  );
 
   const server = Hapi.server({
     port: config.app.port,

@@ -41,26 +41,18 @@ class CollaborationsHandler {
   }
 
   async deleteCollaborationHandler(request) {
-    try {
-      this._validator.validateCollaborationPayload(request.payload);
-      const { id: credentialId } = request.auth.credentials;
-      const { playlistId, userId } = request.payload;
+    this._validator.validateCollaborationPayload(request.payload);
+    const { id: credentialId } = request.auth.credentials;
+    const { playlistId, userId } = request.payload;
 
-      await this._playlistsService.verifyPlaylistOwner(
-        playlistId,
-        credentialId,
-      );
-      await this._usersService.getUserById(userId);
-      await this._service.deleteCollaboration(playlistId, userId);
+    await this._playlistsService.verifyPlaylistOwner(playlistId, credentialId);
+    await this._usersService.getUserById(userId);
+    await this._service.deleteCollaboration(playlistId, userId);
 
-      return {
-        status: 'success',
-        message: 'Kolaborasi berhasil dihapus',
-      };
-    } catch (error) {
-      console.log(error);
-      return error;
-    }
+    return {
+      status: 'success',
+      message: 'Kolaborasi berhasil dihapus',
+    };
   }
 }
 
